@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Info, Loader2, Trash2 } from "lucide-react";
-import { storage } from "../storage";
+import { api } from "../lib/api";
 
 export default function HistoryTab() {
   const [matches, setMatches] = useState(null);
@@ -8,19 +8,9 @@ export default function HistoryTab() {
 
   const load = useCallback(async () => {
     try {
-      const listing = await storage.list("match:");
-      const keys = listing?.keys || [];
-      const items = [];
-      for (const key of keys) {
-        try {
-          const result = await storage.get(key);
-          if (result?.value) items.push(JSON.parse(result.value));
-        } catch {
-          // skip unreadable entries
-        }
-      }
-      items.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setMatches(items);
+      const items = await api.listMatches();
+      const normalized = (items || []).sort((a, b) => new Date(b.playedAt || b.date || 0) - new Date(a.playedAt || a.date || 0));
+      setMatches(normalized);
     } catch {
       setMatches([]);
     }
@@ -33,11 +23,7 @@ export default function HistoryTab() {
   async function clearAll() {
     setBusy(true);
     try {
-      const listing = await storage.list("match:");
-      const keys = listing?.keys || [];
-      for (const key of keys) {
-        await storage.delete(key);
-      }
+      await api.clearMatches();
       await load();
     } finally {
       setBusy(false);
@@ -97,7 +83,7 @@ export default function HistoryTab() {
               <div className="match-result-tag">{match.result === "player" ? "WIN" : "LOSS"}</div>
               <div className="match-info">
                 <span className="match-vs">{match.player} <span className="vs-small">vs</span> {match.opponent}</span>
-                <span className="match-meta">{match.turns} turns · {new Date(match.date).toLocaleString()}</span>
+                <span className="match-meta">{match.turns} turns · {new Date(match.playedAt || match.date || 0).toLocaleString()}</span>
               </div>
             </div>
           ))}

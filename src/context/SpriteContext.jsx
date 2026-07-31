@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { storage } from "../storage";
+import { api } from "../lib/api";
 
 const SpriteContext = createContext({
   sprites: {},
@@ -15,18 +15,8 @@ export function SpriteProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const listing = await storage.list("sprite:");
-        const keys = listing?.keys || [];
-        const entries = {};
-        for (const key of keys) {
-          try {
-            const result = await storage.get(key);
-            if (result?.value) entries[key.slice("sprite:".length)] = result.value;
-          } catch {
-            // skip unreadable entries
-          }
-        }
-        setSprites(entries);
+        const entries = await api.listSprites();
+        setSprites(entries || {});
       } catch (error) {
         console.error("Failed to load custom sprites", error);
       } finally {
@@ -38,7 +28,7 @@ export function SpriteProvider({ children }) {
   const setSprite = useCallback(async (championId, dataUri) => {
     setSprites((current) => ({ ...current, [championId]: dataUri }));
     try {
-      await storage.set(`sprite:${championId}`, dataUri);
+      await api.saveSprite(championId, dataUri);
     } catch (error) {
       console.error("Failed to save sprite", error);
     }
@@ -51,7 +41,7 @@ export function SpriteProvider({ children }) {
       return next;
     });
     try {
-      await storage.delete(`sprite:${championId}`);
+      await api.deleteSprite(championId);
     } catch (error) {
       console.error("Failed to clear sprite", error);
     }

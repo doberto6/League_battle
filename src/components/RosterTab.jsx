@@ -5,6 +5,7 @@ import HexPortrait from "./HexPortrait";
 import { X, Upload } from "lucide-react";
 import { useSpriteContext } from "../context/SpriteContext";
 import { STATUS_COLOR, STATUS_DESC, STATUS_LABEL, TYPE_COLOR, TYPE_LABEL } from "../data/champions";
+import { api } from "../lib/api";
 
 function StatChip({ label, value, color }) {
   return (
@@ -44,12 +45,20 @@ function ChampionModal({ champion, onClose }) {
   const fileRef = useRef(null);
   const hasCustom = Boolean(sprites[champion.id]);
 
-  function handleFile(event) {
+  async function handleFile(event) {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
 
     const reader = new FileReader();
-    reader.onload = () => setSprite(champion.id, reader.result);
+    reader.onload = async () => {
+      const dataUri = reader.result;
+      try {
+        await api.saveSprite(champion.id, dataUri);
+        await setSprite(champion.id, dataUri);
+      } catch (error) {
+        console.error("Failed to save sprite", error);
+      }
+    };
     reader.readAsDataURL(file);
     event.target.value = "";
   }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Trophy } from "lucide-react";
 import { CHAMPIONS, CLASS_STYLE, MAX_MANA, MANA_REGEN, STATUS_COLOR, STATUS_LABEL, TYPE_COLOR, TYPE_LABEL } from "../data/champions";
 import { chooseEnemyMove, computeResult, freshBattler, hpColor } from "../lib/battleEngine";
-import { storage } from "../storage";
+import { api } from "../lib/api";
 import HexPortrait from "./HexPortrait";
 import StatBar from "./StatBar";
 
@@ -29,14 +29,12 @@ export default function BattleArena({ playerChamp, enemyChamp, onExit }) {
     if (savedRef.current) return;
     savedRef.current = true;
     try {
-      const id = `match:${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      await storage.set(id, JSON.stringify({
-        date: new Date().toISOString(),
+      await api.saveMatch({
         player: playerChamp.name,
         opponent: enemyChamp.name,
         result,
         turns: turnCountRef.current,
-      }));
+      });
     } catch (error) {
       console.error("Failed to save match", error);
     }
